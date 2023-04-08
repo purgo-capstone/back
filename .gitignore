@@ -29,8 +29,12 @@ serviceAccountKey.json
 
 ### IDE
 # VSCode
+<<<<<<< Updated upstream
 <<<<<<< HEAD
 launch.json
 =======
 launch.json
 >>>>>>> 8acdd4d953ecb8a25e5dd2877d3dce1ed7a92e79
+=======
+launch.json
+>>>>>>> Stashed changes

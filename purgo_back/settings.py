@@ -37,9 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps',
-    'utils',
-    'common',
+    'auths', # Auths app
+    'rest_framework', # DRF
 ]
 
 MIDDLEWARE = [
@@ -124,3 +123,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Change Django Default UserModel
+AUTH_USER_MODEL = 'auths.User'
+
+# Change Django Default Authentication Backend
+AUTHENTICATION_BACKENDS = ['auths.authentication.EmailBackend']

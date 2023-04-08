@@ -29,4 +29,8 @@ serviceAccountKey.json
 
 ### IDE
 # VSCode
+<<<<<<< HEAD
 launch.json
+=======
+launch.json
+>>>>>>> 8acdd4d953ecb8a25e5dd2877d3dce1ed7a92e79

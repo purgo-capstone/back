@@ -30,3 +30,5 @@ serviceAccountKey.json
 ### IDE
 # VSCode
 launch.json
+
+hospital/serializers.py

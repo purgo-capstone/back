@@ -22,7 +22,7 @@ class UserManager(BaseUserManager):
         '''
         Creates a superuser(admin) with credentials
         '''
-
+        
         extra_fields.setdefault('is_admin', True)
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
@@ -47,11 +47,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     '''
     User Model (영업사원)
     '''
-    
+
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=30)
-
-
     dept = models.ForeignKey(
         Department, 
         on_delete=models.SET_NULL,

@@ -1,12 +1,14 @@
 from django.contrib import admin
 from .models import User, Department
-
 from django.contrib.auth.admin import UserAdmin
-
 from .forms import UserCreationForm, UserChangeForm
 
 
 class CustomUserAdmin(UserAdmin):
+    '''
+    Custom User Admin Page
+    Custom한 User model에 맞는 Form을 사용하도록 변경
+    '''
     add_form = UserCreationForm
     form = UserChangeForm
     model = User

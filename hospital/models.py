@@ -1,11 +1,7 @@
-from datetime import datetime
-
 from django.db import models 
 
 
-# should modify some field names?
-
-class Openapi(models.Model): 
+class InfoModel(models.Model): 
     hospital_id = models.CharField(max_length=255, primary_key=True)
     hospital_name = models.CharField(max_length=255, null=True)
     class_code = models.CharField(max_length=255, null=True)
@@ -24,3 +20,11 @@ class Openapi(models.Model):
     intern_count = models.IntegerField(null=True)
     resident_count = models.IntegerField(null=True)
     fellow_doctor_count = models.IntegerField(null=True)
+
+    def __str__(self): 
+        return (
+            f'{self.hospital_id}, {self.hospital_name}, {self.class_code}, {self.class_code_name}, ' 
+            f'{self.phone}, {self.url}, {self.established_at}, {self.sggu_name}, {self.emdong_name}, ' 
+            f'{self.post_no}, {self.address}, {self.sido_name}, {self.sggu_no}, {self.sido_no}, ' 
+            f'{self.general_doctor_count}, {self.intern_count}, {self.fellow_doctor_count}'
+            )

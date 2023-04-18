@@ -1,24 +1,46 @@
-import os
+import logging
 import xml.etree.ElementTree as et
 
 import requests
+from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import datetime
 from decouple import config
 
-
-from django.http import HttpResponse
 from .models import *
 
 
-# names like functions, variables are not organized.
-# some exceptions may be omitted.
-# the api returning hospinfo is just for tests. not complete.
+logger_hospinfo = logging.getLogger('logger_hospinfo')
 
 
-def get_hospinfo_openapi(): 
-    hospinfo_openapi = {}
+def get_hospinfo(): 
+    """
+    :return: a dictionary having its key as hospital_id and its values as follows:
+            {
+                'hospital_name'
+                'class_code'
+                'class_code_name'
+                'phone'
+                'url'
+                'established_at'
+                'sggu_name'
+                'emdong_name'
+                'post_no'
+                'address'
+                'sido_name'
+                'sggu_no'
+                'sido_no'
+                'general_doctor_count'
+                'intern_count'
+                'resident_count'
+                'fellow_doctor_count'
+            }
+    """
+
+    hospinfo = {}
 
     for pageno in range(1, 9):
+
+        # do a get request to the openapi service.
         try:
             r = requests.get(
                 'http://apis.data.go.kr/B551182/hospInfoServicev2/getHospBasisList?' \
@@ -28,16 +50,18 @@ def get_hospinfo_openapi():
                 %(config('service_key'), str(pageno))
                 )
         except Exception as e:
-            print(e)
-            raise Exception('An openapi request error occured.')
+            logger_hospinfo.critical('An openapi request error occured: %s at pageno %d' % (e, pageno)) 
+            raise Exception('An openapi request error occured: %s at pageno %d' % (e, pageno)) 
 
-        try: #
+        # exclude irrelevant things that will not be used in the app from the get request result.
+        try: 
             root = et.fromstring(r.text)
             items = root[1][0]
         except Exception as e:
-            print(e)
-            raise Exception('A XML parsing error occured.')
+            logger_hospinfo.critical('A XML parsing error occured: %s at pageno %d' % (e, pageno)) 
+            raise Exception('A XML parsing error occured: %s at pageno %d' % (e, pageno)) 
 
+        # create the key-value variable.
         for item in items:
             if not (class_code_name:=item.find('clCd')).text in ['01', '11', '41', '51']: 
                 continue
@@ -61,7 +85,7 @@ def get_hospinfo_openapi():
             resident_count = int(resident_count.text) if (resident_count:=item.find('detyResdntCnt')) != None else None
             fellow_doctor_count = int(fellow_doctor_count.text) if (fellow_doctor_count:=item.find('detySdrCnt')) != None else None
 
-            hospinfo_openapi[hospital_id] = {
+            hospinfo[hospital_id] = {
                 'hospital_name': hospital_name,
                 'class_code': class_code,
                 'class_code_name': class_code_name,
@@ -81,37 +105,39 @@ def get_hospinfo_openapi():
                 'fellow_doctor_count': fellow_doctor_count
                 }
 
-    return hospinfo_openapi
+    return hospinfo
 
+def update_hospinfo():
+    hospinfo = get_hospinfo()
 
-def main(request):
-    hospinfo_openapi = get_hospinfo_openapi() 
-
-    for k, v in hospinfo_openapi.items(): 
+    # iterate the hospinfo,
+    # crate a model instance if an element of the hospinfo is not registered in the database,
+    # update the model instance if an element of the hospinfo is registered in the database.
+    for k, v in hospinfo.items():         
         try:
-            oapi = Openapi.objects.get(hospital_id=k)
+            im = InfoModel.objects.get(hospital_id=k)
 
-            oapi.hospital_name = new_hospital_name if (new_hospital_name:=v['hospital_name']) != oapi.hospital_name else oapi.hospital_name
-            oapi.class_code = new_class_code if (new_class_code:=v['class_code']) != oapi.class_code else oapi.class_code
-            oapi.class_code_name = new_class_code_name if (new_class_code_name:=v['class_code_name']) != oapi.class_code_name else oapi.class_code_name
-            oapi.phone = new_phone if (new_phone:=v['phone']) != oapi.phone else oapi.phone
-            oapi.url = new_url if (new_url:=v['url']) != oapi.url else oapi.url
-            oapi.established_at = new_established_at if (new_established_at:=v['established_at']) != oapi.established_at else oapi.established_at
-            oapi.sggu_name = new_sggu_name if (new_sggu_name:=v['sggu_name']) != oapi.sggu_name else oapi.sggu_name
-            oapi.emdong_name = new_emdong_name if (new_emdong_name:=v['emdong_name']) != oapi.emdong_name else oapi.emdong_name
-            oapi.post_no = new_post_no if (new_post_no:=v['post_no']) != oapi.post_no else oapi.post_no
-            oapi.address = new_address if (new_address:=v['address']) != oapi.address else oapi.address
-            oapi.sido_name = new_sido_name if (new_sido_name:=v['sido_name']) != oapi.sido_name else oapi.sido_name
-            oapi.sggu_no = new_sggu_no if (new_sggu_no:=v['sggu_no']) != oapi.sggu_no else oapi.sggu_no
-            oapi.sido_no = new_sido_no if (new_sido_no:=v['sido_no']) != oapi.sido_no else oapi.sido_no
-            oapi.general_doctor_count = new_general_doctor_count if (new_general_doctor_count:=v['general_doctor_count']) != oapi.general_doctor_count else oapi.general_doctor_count
-            oapi.intern_count = new_intern_count if (new_intern_count:=v['intern_count']) != oapi.intern_count else oapi.intern_count
-            oapi.resident_count = new_resident_count if (new_resident_count:=v['resident_count']) != oapi.resident_count else oapi.resident_count
-            oapi.fellow_doctor_count = new_fellow_doctor_count if (new_fellow_doctor_count:=v['fellow_doctor_count']) != oapi.fellow_doctor_count else oapi.fellow_doctor_count
+            im.hospital_name = new_hospital_name if (new_hospital_name:=v['hospital_name']) != im.hospital_name else im.hospital_name
+            im.class_code = new_class_code if (new_class_code:=v['class_code']) != im.class_code else im.class_code
+            im.class_code_name = new_class_code_name if (new_class_code_name:=v['class_code_name']) != im.class_code_name else im.class_code_name
+            im.phone = new_phone if (new_phone:=v['phone']) != im.phone else im.phone
+            im.url = new_url if (new_url:=v['url']) != im.url else im.url
+            im.established_at = new_established_at if (new_established_at:=v['established_at']) != im.established_at else im.established_at
+            im.sggu_name = new_sggu_name if (new_sggu_name:=v['sggu_name']) != im.sggu_name else im.sggu_name
+            im.emdong_name = new_emdong_name if (new_emdong_name:=v['emdong_name']) != im.emdong_name else im.emdong_name
+            im.post_no = new_post_no if (new_post_no:=v['post_no']) != im.post_no else im.post_no
+            im.address = new_address if (new_address:=v['address']) != im.address else im.address
+            im.sido_name = new_sido_name if (new_sido_name:=v['sido_name']) != im.sido_name else im.sido_name
+            im.sggu_no = new_sggu_no if (new_sggu_no:=v['sggu_no']) != im.sggu_no else im.sggu_no
+            im.sido_no = new_sido_no if (new_sido_no:=v['sido_no']) != im.sido_no else im.sido_no
+            im.general_doctor_count = new_general_doctor_count if (new_general_doctor_count:=v['general_doctor_count']) != im.general_doctor_count else im.general_doctor_count
+            im.intern_count = new_intern_count if (new_intern_count:=v['intern_count']) != im.intern_count else im.intern_count
+            im.resident_count = new_resident_count if (new_resident_count:=v['resident_count']) != im.resident_count else im.resident_count
+            im.fellow_doctor_count = new_fellow_doctor_count if (new_fellow_doctor_count:=v['fellow_doctor_count']) != im.fellow_doctor_count else im.fellow_doctor_count
 
-            oapi.save()
-        except Openapi.DoesNotExist:
-            oapi = Openapi(
+            im.save()
+        except InfoModel.DoesNotExist:
+            im = InfoModel(
                 hospital_id=k,
                 hospital_name=v['hospital_name'],
                 class_code=v['class_code'],
@@ -131,6 +157,11 @@ def main(request):
                 resident_count=v['resident_count'],
                 fellow_doctor_count=v['fellow_doctor_count']
                 )
-            oapi.save()
+            im.save()
 
-    return HttpResponse('complete.')
+    logger_hospinfo.info('update_hospinfo done.')
+
+def start_scheduler():
+    bs = BackgroundScheduler()
+    bs.add_job(update_hospinfo, 'cron', hour='3', minute='52')
+    bs.start()

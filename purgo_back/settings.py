@@ -37,8 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework', # DjangoRestFramework
+    'django_filters', # Django Filtering
     'auths', # Auths app
-    'rest_framework', # DRF
+    'hospital', # Hospital app
 ]
 
 MIDDLEWARE = [
@@ -127,5 +129,20 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Change Django Default UserModel
 AUTH_USER_MODEL = 'auths.User'
 
-# Change Django Default Authentication Backend
-AUTHENTICATION_BACKENDS = ['auths.authentication.EmailBackend']
+AUTHENTICATION_BACKENDS = ['auths.backend.UserBackend']
+
+#Set restframework config
+REST_FRAMEWORK = {
+    # Pagination Options
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 40,
+    
+    # Filter options
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'], 
+
+    # Authentication options
+    'DEFAULT_AUTHENTICATION_CLASSES' : ['rest_framework.authentication.SessionAuthentication'],
+
+    # Permission options
+    'DEFAULT_PERMISSION_CLASSES' : ['rest_framework.permissions.IsAuthenticated'],
+}

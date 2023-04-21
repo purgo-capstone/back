@@ -1,5 +1,6 @@
 from rest_framework import routers
-from .views import UserViewSet, DepartmentViewSet
+from django.urls import path
+from .views import UserViewSet, DepartmentViewSet, LoginView, RegisterView, LogoutView
 
 router = routers.DefaultRouter()
 
@@ -7,6 +8,12 @@ router.register(r'users', UserViewSet)
 router.register(r'departments', DepartmentViewSet)
 
 urlpatterns = router.urls
+
+urlpatterns += [
+    path('login/', LoginView.as_view(), name='login'),
+    path('register/', RegisterView.as_view(), name='register'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+]
 
 '''
 Basic router url provides these endpoints:

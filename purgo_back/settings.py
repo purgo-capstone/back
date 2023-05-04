@@ -82,34 +82,16 @@ WSGI_APPLICATION = 'purgo_back.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-<<<<<<< Updated upstream
-# if DEBUG == True:
-#     DATABASES = {
-#         'default': {
-#             'ENGINE': 'django.db.backends.sqlite3',
-#             'NAME': BASE_DIR / 'db.sqlite3',
-#         },
-#     }
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv("NAME"),
-        'USER': os.getenv("USER"),
-        'PASSWORD': os.getenv("PASSWORD"),
-        'HOST': os.getenv("HOST"),
-        'PORT': os.getenv("PORT"),
-    },
-        
-}
-=======
 if DEBUG == True:
+    # Local Sqlite db
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         },
     }
-else: 
+else:
+    # Amazon aws ec2 server db
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -121,7 +103,7 @@ else:
         },
             
     }
->>>>>>> Stashed changes
+
 
 
 # Password validation
@@ -184,4 +166,27 @@ REST_FRAMEWORK = {
 
     # Permission options
     'DEFAULT_PERMISSION_CLASSES' : ['rest_framework.permissions.IsAuthenticated'],
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '%(asctime)s %(levelname)s %(message)s'
+        },
+    },
+    'handlers': {
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'file.log',
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'logger_hospinfo': {
+            'handlers': ['file'],
+            'level': 'INFO',
+        },
+    },
 }

@@ -166,5 +166,5 @@ def update_hospinfo():
 
 def start_scheduler():
     bs = BackgroundScheduler()
-    bs.add_job(update_hospinfo, 'cron', hour='24', minute='59')
+    bs.add_job(update_hospinfo, 'cron', hour='23', minute='59')
     bs.start()

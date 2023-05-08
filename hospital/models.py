@@ -82,6 +82,31 @@ class Hospital(models.Model):
     def __str__(self):
         return f'{self.hospital_name} : pk({self.hospital_id}) '
 
+# class SalesHistory(models.Model):
+#     '''
+#     Sales History Content (Record)
+#     '''
+#     ON_GOING = 1
+#     COMPLETE = 2
+#     STATUS = [
+#         (ON_GOING, 1),
+#         (COMPLETE, 2),
+#     ]
+
+#     history_id = models.IntegerField()
+#     hospital = models.ForeignKey(
+#         Hospital,
+#         on_delete=models.CASCADE,
+#     )
+#     content = models.TextField()
+#     status = models.SmallIntegerField(choices=STATUS, default=ON_GOING)
+#     created_at = models.DateTimeField(auto_now=True, auto_created=True)
+#     modified_at = models.DateTimeField(auto_now=True)
+
+#     class Meta:
+#         verbose_name = 'History'
+
+
 
 
 

@@ -6,3 +6,11 @@ class isAdmin(BasePermission):
     '''
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.is_admin
+
+class isOwner(BasePermission):
+    '''
+    IsOwner Permission - Checks if user is owner
+    '''
+    def has_object_permission(self, request, view, obj):
+        
+        return obj == request.user

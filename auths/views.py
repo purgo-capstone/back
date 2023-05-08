@@ -1,13 +1,32 @@
+'''
+Basic ModelViewSet provides these functions:
+
+list(): Returns a list of all objects in the queryset.
+
+create(): Creates a new object instance from the request data.
+
+retrieve(): Returns a single object instance by primary key.
+
+update(): Updates an object instance by primary key with the request data.
+
+partial_update(): Updates an object instance by primary key with the request data, but allows partial updates.
+
+destroy(): Deletes an object instance by primary key.
+
+'''
+
 from rest_framework import viewsets, status
-from .models import User, Department
-from .serializers import UserSerializer, DepartmentSerializer, LoginSerializer, RegisterSerializer
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import login, logout
+from .models import User, Department
+from .serializers import UserSerializer, DepartmentSerializer,\
+                         LoginSerializer, RegisterSerializer
+from .permissions import isOwner
 
 class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
@@ -21,6 +40,15 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'email']
     ordering_fields = ['name', 'email']
     ordering = ['name']
+
+    def get_permissions(self):
+        actions = ['update', 'partial_update', 'destroy']
+        if self.action in actions:
+            permission_classes = [IsAuthenticated & isOwner]
+        else:
+            permission_classes = [IsAuthenticated]
+
+        return [permission() for permission in permission_classes]
 
     def destroy(self, request, *args, **kwargs):
         '''
@@ -72,19 +100,4 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_200_OK)
 
     
-'''
-Basic ModelViewSet provides these functions:
 
-list(): Returns a list of all objects in the queryset.
-
-create(): Creates a new object instance from the request data.
-
-retrieve(): Returns a single object instance by primary key.
-
-update(): Updates an object instance by primary key with the request data.
-
-partial_update(): Updates an object instance by primary key with the request data, but allows partial updates.
-
-destroy(): Deletes an object instance by primary key.
-
-'''

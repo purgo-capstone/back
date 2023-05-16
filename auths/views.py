@@ -1,39 +1,37 @@
-'''
-Basic ModelViewSet provides these functions:
-
-list(): Returns a list of all objects in the queryset.
-
-create(): Creates a new object instance from the request data.
-
-retrieve(): Returns a single object instance by primary key.
-
-update(): Updates an object instance by primary key with the request data.
-
-partial_update(): Updates an object instance by primary key with the request data, but allows partial updates.
-
-destroy(): Deletes an object instance by primary key.
-
-'''
-
 from rest_framework import viewsets, status
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.generics import CreateAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import login, logout
 from .models import User, Department
 from .serializers import UserSerializer, DepartmentSerializer,\
                          LoginSerializer, RegisterSerializer
-from .permissions import isOwner
+from .permissions import isOwner, isAdmin
+
 
 class DepartmentViewSet(viewsets.ModelViewSet):
+    permission_classes = [isAdmin]
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
 
 
 class UserViewSet(viewsets.ModelViewSet):
+    '''
+    User viewset
+
+    - get: list all users
+    - post: not allowed / use register view below to create user
+
+    User needs permission : (is owner, is admin) to do the followings 
+
+    - update: updates credentials of the instance
+    - delete: makes user inactive state(not delete from db)
+
+    '''
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = [SearchFilter, OrderingFilter]
@@ -43,12 +41,17 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         actions = ['update', 'partial_update', 'destroy']
+
         if self.action in actions:
-            permission_classes = [IsAuthenticated & isOwner]
+            permission_classes = [IsAuthenticated & (isOwner|isAdmin)]
         else:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
+
+    def create(self, request, *args, **kwargs):
+
+        raise MethodNotAllowed('POST')
 
     def destroy(self, request, *args, **kwargs):
         '''
@@ -62,7 +65,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
 class RegisterView(CreateAPIView):
     '''
-    Register View
+    Register View 
+    - post: Register's new user based on the form credentials
+    
     '''
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -73,6 +78,7 @@ class LoginView(APIView):
     '''
     Login View
 
+    - post: Login user based on the credentials
     '''
     authentication_classes = [SessionAuthentication] # Session Based Authentication
     permission_classes = [AllowAny]
@@ -94,6 +100,8 @@ class LoginView(APIView):
 class LogoutView(APIView):
     '''
     Logout View
+
+    - get: Logs user out if logged in
     '''
     def get(self, request):
         logout(request)

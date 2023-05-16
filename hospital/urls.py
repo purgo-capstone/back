@@ -14,7 +14,8 @@ DELETE /hospitals/{pk}/: Delete a single user by primary key
 from django.urls import path, include
 from rest_framework import routers
 from .views import HospitalViewSet, DoctorViewSet, \
-                   MajorViewSet, SchoolViewSet
+                   MajorViewSet, SchoolViewSet, \
+                   SalesHistoryView
                    
 router = routers.DefaultRouter()
 
@@ -25,5 +26,7 @@ router.register(r'schools', SchoolViewSet)
 
 urlpatterns =[
     path('', include(router.urls)),
+    path('histories/', SalesHistoryView.as_view(), name='sales-history'),
+    path('histories/<int:pk>/', SalesHistoryView.as_view(), name='sales-history-more'),
 ]
 

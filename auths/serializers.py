@@ -1,22 +1,55 @@
 from rest_framework import serializers
-from .models import User, Department
-from django.contrib.auth import authenticate
 from rest_framework.validators import UniqueValidator
+from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 
-class UserSerializer(serializers.ModelSerializer):
+from .models import User, Department
+
+class CustomSerializer(serializers.ModelSerializer):
+    '''
+    Custom Serializer add these functionalities:
+    Enable Kwarg(Fields) : Enables to select fields when nesting serializers
+    e.g.) HospitalSerializer(source='hospital', fields=('hospital_name', 'manager_info'),
+
+    '''
+    #Enables kwarg: fields
+    def __init__(self, *args, **kwargs):
+        fields = kwargs.pop('fields', None)
+        if fields is not None:
+            select = set(fields)
+            current = set(self.fields.keys())
+            for field in current - select:
+                self.fields.pop(field)
+        super().__init__(*args, **kwargs)
+
+class UserSerializer(CustomSerializer):
+    '''
+    User Serializer (General) password is (write_only)
+    '''
+    password = serializers.CharField() 
 
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ['id', 'email', 'name', 'password', 'dept', 'is_admin']
 
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password is not None:
+            instance.set_password(password)
+        else:
+            raise serializers.ValidationError('Password is Empty', code='InvalidPassword')
+        return super().update(instance, validated_data)
 
-class DepartmentSerializer(serializers.ModelSerializer):
-
+class DepartmentSerializer(CustomSerializer):
+    '''
+    Department Serializer (General)
+    '''
     class Meta:
         model = Department
         fields = ['name']
-
+        extra_kwargs = {
+            'name': {'required': True},
+        }
 
 class LoginSerializer(serializers.Serializer):
     '''
@@ -65,9 +98,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         validators = [UniqueValidator(queryset = User.objects.all())]
     )
 
-    name = serializers.CharField(
-        required = True
-    )
+    name = serializers.CharField(required = True)
 
     password = serializers.CharField(
         write_only=True,

@@ -25,10 +25,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-s&neci7(fw8si02u3!)66#_$-&)2+v29gz8r^s*p=da*mvb4&m'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['.amazonaws.com', 'localhost']
 
@@ -58,6 +58,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+if DEBUG:
+    MIDDLEWARE.append('purgo_back.utils.logger.QueryCountMiddleware')
+
 ROOT_URLCONF = 'purgo_back.urls'
 
 TEMPLATES = [
@@ -82,7 +85,8 @@ WSGI_APPLICATION = 'purgo_back.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-if DEBUG == True:
+SERVER = 'local'
+if SERVER == 'local':
     # Local Sqlite db
     DATABASES = {
         'default': {
@@ -90,7 +94,7 @@ if DEBUG == True:
             'NAME': BASE_DIR / 'db.sqlite3',
         },
     }
-else:
+elif SERVER == 'aws':
     # Amazon aws ec2 server db
     DATABASES = {
         'default': {
@@ -177,6 +181,10 @@ LOGGING = {
         },
     },
     'handlers': {
+        'console':{
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
         'file': {
             'class': 'logging.FileHandler',
             'filename': 'file.log',
@@ -184,6 +192,10 @@ LOGGING = {
         },
     },
     'loggers': {
+        'purgo_back.utils.logger':{
+            'level': 'DEBUG',
+            'handlers' : ['console'],
+        },
         'logger_hospinfo': {
             'handlers': ['file'],
             'level': 'INFO',

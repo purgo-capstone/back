@@ -2,7 +2,7 @@ from rest_framework.permissions import BasePermission
 
 class isAdmin(BasePermission):
     '''
-    IsAdmin permission - delete later if not used
+    IsAdmin permission - Checks if user is admin
     '''
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.is_admin
@@ -14,3 +14,5 @@ class isOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
         
         return obj == request.user
+
+        

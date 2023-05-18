@@ -12,7 +12,8 @@ from auths.permissions import isAdmin, isOwner
 from .models import Hospital, Doctor, Major, School, SalesHistory
 from .serializers import HospitalSerializer, DoctorSerializer, \
                          MajorSerializer, SchoolSerializer, \
-                         SalesHistorySerializer, SalesHistoryCreateSerializer
+                         SalesHistorySerializer, SalesHistoryCreateSerializer, \
+                         SalesHistoryRegisterSerializer
 
 from .utils.hosp_fetch import get_hospinfo_openapi                
                          
@@ -37,10 +38,11 @@ class HospitalViewSet(viewsets.ModelViewSet):
     queryset = Hospital.objects.all()
     serializer_class = HospitalSerializer
     filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
-    filterset_fields = ['class_code']
+    filterset_fields = ['class_code', 'manager__id']
     search_fields = ['hospital_name', 'director__name']
     ordering_fields = ['hospital_name', 'established_at']
     ordering = ['hospital_name']
+
 
 class MajorViewSet(viewsets.ModelViewSet):
     permission_classes = [isAdmin]
@@ -72,6 +74,7 @@ class SalesHistoryView(APIView):
 
     *query performance differs by using select_related, and prefetch related
     '''
+
     permission_classes = [IsAuthenticated]
     
     def get_object(self, pk):
@@ -87,19 +90,14 @@ class SalesHistoryView(APIView):
 
     def get(self, request, pk=None):
         '''
-        Returns The histories managed by the current user if pk,
-        Returns all history if not
+        Returns The history based on the modified date, and the hospital id
         '''
-
-        if pk is not None:
-            history = SalesHistory.objects.filter(pk=pk).select_related('hospital__manager')    
-        else:
-            history = SalesHistory.objects.all().select_related('hospital__manager')
+        
+        history = SalesHistory.objects.all().order_by('-modified_at', 'hospital').select_related('hospital__manager', 'hospital__director')
 
         serializer = SalesHistorySerializer(history, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
         
-    
     def post(self, request, format=None):
         '''
         Create(Post) a new Sales History 
@@ -112,7 +110,6 @@ class SalesHistoryView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-
     def put(self, request, pk):
         '''
         Update History
@@ -148,7 +145,6 @@ class SalesHistoryView(APIView):
             return Response(serializer.data)
         return Response(data=serializer.error_messages, status=status.HTTP_404_NOT_FOUND)
 
-    
     def delete(self, request, pk):
         '''
         Delete History
@@ -166,6 +162,22 @@ class SalesHistoryView(APIView):
 
     allowed_methods = ['get', 'post', 'put', 'patch', 'delete']
 
+class SalesHistoryRegisterView(APIView):
+    '''
+    SalesHistory (Register) View
+    '''
+
+    allowed_methods = ['get']
+
+    def get(self, request):
+        
+        history = SalesHistory.objects.filter(hospital__manager=request.user) \
+                                      .order_by('-modified_at') \
+                                      .select_related('hospital__manager')
+
+        serializer = SalesHistoryRegisterSerializer(history, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
     
 ####
 #### This Function is for Testing Purposes ONLY

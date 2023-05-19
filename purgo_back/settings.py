@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'django_filters', # Django Filtering
     'auths', # Auths app
     'hospital', # Hospital app
+    'drf_spectacular' # Swagger (Openapi3.0)
 ]
 
 MIDDLEWARE = [

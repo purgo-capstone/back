@@ -11,6 +11,8 @@ from .models import User, Department
 from .serializers import UserSerializer, DepartmentSerializer,\
                          LoginSerializer, RegisterSerializer
 from .permissions import isOwner, isAdmin
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):
@@ -18,7 +20,13 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
 
-
+@extend_schema(
+    parameters=[
+          UserSerializer,  # serializer fields are converted to parameters
+          OpenApiParameter("email", OpenApiTypes.EMAIL, OpenApiParameter.QUERY),
+          OpenApiParameter("password", OpenApiTypes.PASSWORD, OpenApiParameter.QUERY),
+        ],
+)
 class UserViewSet(viewsets.ModelViewSet):
     '''
     User viewset
@@ -39,6 +47,8 @@ class UserViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'email']
     ordering = ['name']
 
+    http_method_names = ['get', 'update', 'patch', 'delete']
+    
     def get_permissions(self):
         actions = ['update', 'partial_update', 'destroy']
 
@@ -48,10 +58,6 @@ class UserViewSet(viewsets.ModelViewSet):
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
-
-    def create(self, request, *args, **kwargs):
-
-        raise MethodNotAllowed('POST')
 
     def destroy(self, request, *args, **kwargs):
         '''
@@ -63,6 +69,12 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response({'detail':'Deleted User'}, status=status.HTTP_204_NO_CONTENT)
 
 
+
+@extend_schema(
+        request=RegisterSerializer,
+        responses={200: {'description': 'Success', 'example': {'description': 'Success'}}, 400: {'description': 'email validation error', 'example': {'description': 'user already exists'}}}
+        # more customizations
+)
 class RegisterView(CreateAPIView):
     '''
     Register View 
@@ -80,16 +92,21 @@ class LoginView(APIView):
 
     - post: Login user based on the credentials
     '''
+    
     authentication_classes = [SessionAuthentication] # Session Based Authentication
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=LoginSerializer,
+        responses={200: {'description': 'Success', 'example': {'description': 'Success'}}, 401: {'description': 'Invalid Credentials', 'example': {'description': 'Invalid Credentials'}}}
+        # more customizations
+    )
     def post(self, request):
         serializer = LoginSerializer(data=request.data, context={'request':request})
         
         if serializer.is_valid(raise_exception=True):
 
             user = serializer.validated_data['user']
-
             login(request, user)
             return Response(status=status.HTTP_202_ACCEPTED)
         

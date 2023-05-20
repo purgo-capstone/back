@@ -15,4 +15,12 @@ class isOwner(BasePermission):
         
         return obj == request.user
 
+class isManager(BasePermission):
+    '''
+    IsManager Permission - Checks if user is Manager of the hospital
+    '''
+    def has_object_permission(self, request, view, obj):
+        
+        return obj.manager == request.user
+
         

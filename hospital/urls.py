@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework import routers
 from .views import HospitalViewSet, DoctorViewSet, \
                    MajorViewSet, SchoolViewSet, \
-                   SalesHistoryView, SalesHistoryRegisterView
+                   SalesHistoryListView, SalesHistoryDetailsView, \
+                   SalesHistoryRecentView, SalesHistoryHospitalView
                    
 router = routers.DefaultRouter()
 
@@ -13,8 +14,8 @@ router.register(r'schools', SchoolViewSet)
 
 urlpatterns =[
     path('', include(router.urls)),
-    path('saleshistory/', SalesHistoryView.as_view(), name='sales-history'),
-    path('saleshistory/<str:pk>/', SalesHistoryView.as_view(), name='sales-history-detail'),
-    path('salesregisterhistory/', SalesHistoryRegisterView.as_view(), name='sales-history-register')
+    path('saleshistory/', SalesHistoryListView.as_view(), name='sales-history'),
+    path('saleshistory/<int:pk>/', SalesHistoryDetailsView.as_view(), name='sales-history-detail'),
+    path('saleshistory/myhistory/', SalesHistoryRecentView.as_view(), name='sales-history-self'),
 ]
 

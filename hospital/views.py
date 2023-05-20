@@ -1,26 +1,33 @@
 from rest_framework.decorators import api_view
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.types import OpenApiTypes 
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import redirect
 
-from auths.permissions import isAdmin, isOwner
+from auths.permissions import isAdmin, isManager
 from .models import Hospital, Doctor, Major, School, SalesHistory
 from .serializers import HospitalSerializer, DoctorSerializer, \
                          MajorSerializer, SchoolSerializer, \
                          SalesHistorySerializer, SalesHistoryCreateSerializer, \
-                         SalesHistoryRegisterSerializer
+                         SalesHistoryRecentSerializer
 
 from .utils.hosp_fetch import get_hospinfo_openapi                
-                         
+                        
 
 class DoctorViewSet(viewsets.ModelViewSet):
     '''
     Doctor ViewSet 
+    
+    crud operation on doctor model
+    permission: Admin
+    
     '''
     permission_classes = [isAdmin]
     queryset = Doctor.objects.all()
@@ -42,8 +49,19 @@ class HospitalViewSet(viewsets.ModelViewSet):
     search_fields = ['hospital_name', 'director__name']
     ordering_fields = ['hospital_name', 'established_at']
     ordering = ['hospital_name']
+    
+    def get_permissions(self):
+        actions = ['update', 'partial_update', 'destroy']
 
+        if self.action in actions:
+            permission_classes = [IsAuthenticated & (isManager|isAdmin)]
+        else:
+            permission_classes = [IsAuthenticated]
 
+        return [permission() for permission in permission_classes]
+        
+    
+    
 class MajorViewSet(viewsets.ModelViewSet):
     permission_classes = [isAdmin]
     queryset = Major.objects.all()
@@ -54,28 +72,75 @@ class SchoolViewSet(viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
 
-class SalesHistoryView(APIView):
+class SalesHistoryListView(APIView):
     '''
-    SalesHistory API View
-
-    get: returns the specific history with pk, entire list without pk
-
-    ** Requires Permission (Hospital Manager) or Admin
-
-    post: creates a new history
-
-    update: update history
-
-    partial update: paritally updates history
-
-    delete: deletes history
-
-    add sql logging ref: https://www.dabapps.com/insights/logging-sql-queries-django-13/
+    SalesHistoryView List, Post View
 
     *query performance differs by using select_related, and prefetch related
     '''
 
-    permission_classes = [IsAuthenticated]
+    @extend_schema(
+    methods=['get'],
+    parameters= [OpenApiParameter('hospital_id', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False)],
+    responses={200: SalesHistorySerializer(many=True)},
+    # more customizations
+    )
+    def get(self, request):
+        '''
+        no parameter:
+        
+        list: returns The entire list of sales history, ordered by modified date, and hospital id
+        
+        parameter hospital:
+        
+        list: returns The filtered list of saleshistory on a hospital id
+        params: hospital (hospital_id: str)
+        '''
+        
+        hospital = request.query_params.get('hospital', None)
+        
+        if hospital is not None:
+            history = SalesHistory.objects.filter(hospital=hospital)\
+                                          .order_by('-modified_at', 'hospital')\
+                                          .select_related('hospital__manager', 'hospital__director')
+        else:
+            history = SalesHistory.objects.all().order_by('-modified_at', 'hospital')\
+                                                .select_related('hospital__manager', 'hospital__director')
+           
+        serializer = SalesHistorySerializer(history, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+    @extend_schema(
+        methods=['POST'],
+        request = SalesHistoryCreateSerializer,
+        responses = {201: SalesHistoryCreateSerializer, 400:{'description': 'Invalid Parameters', 'example': {'description': 'Invalid Parameters'}}}
+        # more customizations
+    )
+    def post(self, request, format=None):
+        '''
+        post: creates new saleshistory
+
+        required: hospital_id, status: (A,B,O,F,P), content
+        
+        permission: need to be manager of hospital
+        '''
+        
+        serializer = SalesHistoryCreateSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    allowed_methods = ['get', 'post']
+
+
+class SalesHistoryDetailsView(APIView):
+    '''
+    SalesHistoryView Based on saleshistory id(pk)
+
+    ** Requires Permission (Hospital Manager) or Admin
+    '''
     
     def get_object(self, pk):
         try:
@@ -84,36 +149,37 @@ class SalesHistoryView(APIView):
             return Response({'pk not found'}, status=status.HTTP_404_NOT_FOUND)
 
     def check_owner(self, obj):
-
         # Checks if user is the manager of the hospital
         return (obj.hospital.manager == self.request.user) or (self.request.user.is_admin)
-
+    
+    @extend_schema(
+        methods=['GET'],
+        responses = {200: SalesHistorySerializer, 404:{'description': 'Invalid saleshistory id(pk)', 'example': {'description': 'Invalid saleshistory id(pk)'}}},
+        # more customizations
+    )
     def get(self, request, pk=None):
         '''
-        Returns The history based on the modified date, and the hospital id
+        get: returns single saleshistory based on pk(id:int)
         '''
-        
-        history = SalesHistory.objects.all().order_by('-modified_at', 'hospital').select_related('hospital__manager', 'hospital__director')
-
-        serializer = SalesHistorySerializer(history, many=True)
+        history = self.get_object(pk)                            
+        serializer = SalesHistorySerializer(history)
         return Response(serializer.data, status=status.HTTP_200_OK)
         
-    def post(self, request, format=None):
-        '''
-        Create(Post) a new Sales History 
-
-        required: Hospital(key), status: B2B(stages A,B,O,F,P), content
-        '''
-        serializer = SalesHistoryCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+    @extend_schema(
+        methods=['PUT'],
+        parameters=[
+          OpenApiParameter("id (history)", OpenApiParameter.PATH, required=True),
+        ],
+        request = SalesHistoryCreateSerializer,
+        responses = {200: SalesHistorySerializer, 
+                     404: {'description': 'Invalid saleshistory id(pk)', 'example': {'description': 'Invalid saleshistory id(pk)'}},
+                     403: {'description': 'Insufficient Permission', 'example': {'description': 'Insufficient Permission'}}}
+        # more customizations
+    )
     def put(self, request, pk):
         '''
-        Update History
-        ** Requires: Hospital, status, content fields
+        put: updates saleshistory
+        permission: need to be manager of hospital & owner of history
         '''
         item = self.get_object(pk)
         
@@ -128,10 +194,24 @@ class SalesHistoryView(APIView):
             return Response(serializer.data)
         return Response(status=status.HTTP_404_NOT_FOUND)
 
+
+    @extend_schema(
+        methods=['PATCH'],
+        description='partial update saleshistory only requires id',
+        parameters=[
+          OpenApiParameter("id (history)", OpenApiParameter.PATH, required=True)
+        ],
+        request = SalesHistoryCreateSerializer,
+        responses = {200: SalesHistorySerializer,
+                     404: {'description': 'Invalid saleshistory id(pk)', 'example': {'description': 'Invalid saleshistory id(pk)'}},
+                     403: {'description': 'Insufficient Permission', 'example': {'description': 'Insufficient Permission'}}}
+        # more customizations
+    )
     def patch(self, request, pk):
         '''
-        Partially Updates History
-        ** Doesn't Require Any Field
+        patch: 	partially updates saleshistory
+        permission: need to be manager of hospital & owner of history 
+        
         '''
         item = self.get_object(pk)
 
@@ -144,10 +224,19 @@ class SalesHistoryView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(data=serializer.error_messages, status=status.HTTP_404_NOT_FOUND)
-
+    
+    @extend_schema(
+        methods=['DELETE'],
+        parameters = [OpenApiParameter("id (history)", OpenApiParameter.PATH, required=True)],
+        responses={204: 'No content',
+                   404: {'description': 'Invalid saleshistory id(pk)', 'example': {'description': 'Invalid saleshistory id(pk)'}},
+                   403: {'description': 'Insufficient Permission', 'example': {'description': 'Insufficient Permission'}}}
+    )
     def delete(self, request, pk):
         '''
         Delete History
+        
+        permission: need to be manager of hospital & owner of history
         '''
         item = self.get_object(pk)
 
@@ -159,24 +248,59 @@ class SalesHistoryView(APIView):
 
     def perform_destroy(self, instance):
         instance.delete()
+    
+    allowed_methods = ['get','put','patch','delete']
 
-    allowed_methods = ['get', 'post', 'put', 'patch', 'delete']
-
-class SalesHistoryRegisterView(APIView):
+class SalesHistoryRecentView(APIView):
     '''
-    SalesHistory (Register) View
+    SalesHistoryView List Sales History of current logged in user
     '''
-
     allowed_methods = ['get']
-
+    
+    
+    @extend_schema(
+        methods=['GET'],
+        responses = {200: SalesHistoryRecentSerializer(many=True)},
+        # more customizations
+    )
     def get(self, request):
-        
+        '''
+        get: returns list of saleshistories created by the current user logged in
+        '''
+    
         history = SalesHistory.objects.filter(hospital__manager=request.user) \
-                                      .order_by('-modified_at') \
-                                      .select_related('hospital__manager')
+                                        .order_by('-modified_at') \
+                                        .select_related('hospital__manager')
 
-        serializer = SalesHistoryRegisterSerializer(history, many=True)
+        serializer = SalesHistoryRecentSerializer(history, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+
+class SalesHistoryHospitalView(APIView):
+    '''
+    SalesHistoryView based on the hospital(pk)
+    '''
+    allowed_methods = ['get']
+    
+    @extend_schema(
+    methods=['get'],
+    parameters=[
+        OpenApiParameter("pk (hospital)", OpenApiParameter.PATH, required=True), 
+    ],
+    responses={200: SalesHistorySerializer(many=True)},
+    )
+    def get(self, request, hospital=None):
+        '''
+        list: Returns The list of sales history, based on a hospital pk (요양기호)
+        '''
+        history = SalesHistory.objects.filter(hospital=hospital)\
+                                      .order_by('-modified_at', 'hospital')\
+                                      .select_related('hospital__manager', 'hospital__director')                
+                                      
+        serializer = SalesHistorySerializer(history, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
         
     
 ####

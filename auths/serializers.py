@@ -22,15 +22,27 @@ class CustomSerializer(serializers.ModelSerializer):
                 self.fields.pop(field)
         super().__init__(*args, **kwargs)
 
+class DepartmentSerializer(CustomSerializer):
+    '''
+    Department Serializer (General)
+    '''
+    class Meta:
+        model = Department
+        fields = ['id', 'name']
+        extra_kwargs = {
+            'name': {'required': True},
+        }
+
 class UserSerializer(CustomSerializer):
     '''
     User Serializer (General) password is (write_only)
     '''
-    password = serializers.CharField() 
+    password = serializers.CharField(write_only=True) 
 
+    dept_name = DepartmentSerializer(source="dept",read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'password', 'dept', 'is_admin']
+        fields = ['id', 'email', 'name', 'password', 'dept', 'is_admin', 'dept_name']
 
     def update(self, instance, validated_data):
         password = validated_data.pop('password', None)
@@ -39,17 +51,6 @@ class UserSerializer(CustomSerializer):
         else:
             raise serializers.ValidationError('Password is Empty', code='InvalidPassword')
         return super().update(instance, validated_data)
-
-class DepartmentSerializer(CustomSerializer):
-    '''
-    Department Serializer (General)
-    '''
-    class Meta:
-        model = Department
-        fields = ['name']
-        extra_kwargs = {
-            'name': {'required': True},
-        }
 
 class LoginSerializer(serializers.Serializer):
     '''
@@ -67,7 +68,6 @@ class LoginSerializer(serializers.Serializer):
         password = attrs.get("password")
 
         if email and password:
-
             user = authenticate(
                 request=self.context.get('request'),
                 username = email,

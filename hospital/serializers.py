@@ -192,3 +192,26 @@ class SalesHistoryRecentSerializer(serializers.ModelSerializer):
             'modified_at', 'status', 'content', 'hosp_info', 'hospital', 'get_status_display'
         ]
 
+class DateCountSerializer(serializers.Serializer):
+    count = serializers.IntegerField()
+    date = serializers.DateField(format="%Y-%m-%d", input_formats=["%Y-%m-%d"])
+    
+    def to_representation(self, instance):
+        print(instance.keys())  # Print the dictionary keys
+        return super().to_representation(instance)
+
+class UserCountSerializer(serializers.Serializer):
+    hospital__manager = serializers.IntegerField()
+    count = serializers.IntegerField()
+
+class StatusCountSerializer(serializers.Serializer):
+    status = serializers.CharField()
+    count = serializers.IntegerField()
+
+class DashboardSerializer(serializers.Serializer):
+    '''
+    Serialize all data for Dashboard view
+    '''
+    user_cnt = UserCountSerializer(many=True)
+    status_cnt = StatusCountSerializer(many=True)
+    date_cnt = DateCountSerializer(many=True)

@@ -2,8 +2,10 @@ from django.urls import path, include
 from rest_framework import routers
 from .views import HospitalViewSet, DoctorViewSet, \
                    MajorViewSet, SchoolViewSet, \
+                   DashboardView, \
                    SalesHistoryListView, SalesHistoryDetailsView, \
-                   SalesHistoryRecentView, SalesHistoryHospitalView
+                   SalesHistoryRecentView 
+                   
                    
 router = routers.DefaultRouter()
 
@@ -17,5 +19,6 @@ urlpatterns =[
     path('saleshistory/', SalesHistoryListView.as_view(), name='sales-history'),
     path('saleshistory/<int:pk>/', SalesHistoryDetailsView.as_view(), name='sales-history-detail'),
     path('saleshistory/myhistory/', SalesHistoryRecentView.as_view(), name='sales-history-self'),
+    path('dashboard/', DashboardView.as_view(), name='dash-board')
 ]
 

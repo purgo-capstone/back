@@ -15,6 +15,8 @@ from auths.permissions import isAdmin, isManager
 from .models import Hospital, Doctor, Major, School, SalesHistory
 from .serializers import HospitalSerializer, DoctorSerializer, \
                          MajorSerializer, SchoolSerializer, \
+                         UserCountSerializer, StatusCountSerializer, \
+                         DateCountSerializer, DashboardSerializer,\
                          SalesHistorySerializer, SalesHistoryCreateSerializer, \
                          SalesHistoryRecentSerializer
 
@@ -60,8 +62,6 @@ class HospitalViewSet(viewsets.ModelViewSet):
 
         return [permission() for permission in permission_classes]
         
-    
-    
 class MajorViewSet(viewsets.ModelViewSet):
     permission_classes = [isAdmin]
     queryset = Major.objects.all()
@@ -257,7 +257,6 @@ class SalesHistoryRecentView(APIView):
     '''
     allowed_methods = ['get']
     
-    
     @extend_schema(
         methods=['GET'],
         responses = {200: SalesHistoryRecentSerializer(many=True)},
@@ -276,7 +275,6 @@ class SalesHistoryRecentView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     
-
 class SalesHistoryHospitalView(APIView):
     '''
     SalesHistoryView based on the hospital(pk)
@@ -301,7 +299,52 @@ class SalesHistoryHospitalView(APIView):
         serializer = SalesHistorySerializer(history, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class DashboardView(APIView):
+    '''
+    Dashboard View various insightful data
+    
+    '''
+
+    @extend_schema(
+    methods=['get'],
+    responses={200: DashboardSerializer(many=True)},
+    )
+    def get(self, request):
+        '''
+        list: returns various insightful stats in serialized forms  
+        '''
+        from django.db.models import Count, F
+        from django.db.models.functions import TruncDate
+    
+        # saleshistory count by status:
+        status_cnt = SalesHistory.objects.values('status').annotate(count = Count('status'))
+        ## 'status' : 'A', 'count': 2 // charfield, integerfield
+
+        status_cnt = StatusCountSerializer(status_cnt, many=True)
+
+        # saleshistory count by date:
+        date_cnt = SalesHistory.objects.annotate(date = TruncDate('modified_at')).values('date').annotate(count=Count('date'))
+
+        ## 'date':datetime.date(2023,5,16), 'count':2 // Datefield, integerfield
+        date_cnt = DateCountSerializer(date_cnt, many=True)
         
+        # saleshistory count by user: 
+        user_cnt = SalesHistory.objects.values('hospital__manager').annotate(count=Count('hospital__manager'))
+        
+        user_cnt = UserCountSerializer(user_cnt, many=True)
+        ## 'hospital__manager' : 2, 'count': 2 // integerfield, integerfield
+
+        total_cnt = {
+            'user_cnt' : user_cnt.data,
+            'date_cnt' : date_cnt.data,
+            'status_cnt' : status_cnt.data
+        }
+        dashboard = DashboardSerializer(total_cnt)
+
+        return Response(dashboard.data, status=status.HTTP_200_OK)
+
+
+           
     
 ####
 #### This Function is for Testing Purposes ONLY

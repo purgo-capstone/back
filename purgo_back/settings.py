@@ -30,7 +30,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['.amazonaws.com', 'localhost']
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -46,10 +46,12 @@ INSTALLED_APPS = [
     'django_filters', # Django Filtering
     'auths', # Auths app
     'hospital', # Hospital app
-    'drf_spectacular' # Swagger (Openapi3.0)
+    'drf_spectacular', # Swagger (Openapi3.0)
+    'corsheaders', # CORS Headers
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', # cors middleware
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -176,10 +178,13 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# CORS Settings
+CORS_ALLOW_ALL_ORIGINS = True
+
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Purgo-CRM Back',
     'DESCRIPTION': "Purgo web solution project's backend api",
-    'VERSION': '1.0.0',
+    'VERSION': '1.0.1',
     'SERVE_INCLUDE_SCHEMA': False,
     # OTHER SETTINGS
     

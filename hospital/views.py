@@ -337,12 +337,12 @@ class SalesHistoryHospitalView(APIView):
         serializer = SalesHistorySerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 class DashboardView(APIView):
     '''
     Dashboard View various insightful data
     
     '''
-
     @extend_schema(
     methods=['get'],
     responses={200: DashboardSerializer(many=True)},

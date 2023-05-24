@@ -67,8 +67,7 @@ Swagger ui should provide a page like this:
 ![purgo_back_test](https://github.com/purgo-capstone/back/assets/64758800/17846878-9ad3-4b48-929c-039cc0e4c98b)
 
 
-### AWS Server Settings
-* First Start
+## AWS Server Settings
 
 clone backend api
 ```
@@ -93,4 +92,12 @@ python manage.py migrate
 run django test server (not for production) use wsgi or gunicorn instead for production
 ```
 python manage.py runserver 0:8000 --noreload 
+```
+
+### Docker Related
+run mysql docker
+```
+sudo docker ps -a
+
+sudo docker start (container_id)
 ```

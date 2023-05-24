@@ -3,8 +3,11 @@ import os
 import xml.etree.ElementTree as et
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
-from datetime import datetime
-from .models import Hospital
+from datetime import datetime, timezone
+
+from django.core.mail import EmailMessage
+
+from .models import Hospital, SalesHistory
 
 
 logger_hospinfo = logging.getLogger('logger_hospinfo')
@@ -164,7 +167,32 @@ def update_hospinfo():
 
     logger_hospinfo.info('update_hospinfo done.')
 
+def send_saleshistories_update_emails():
+    emails_and_saleshistories_to_update = {}
+    threshold_days_for_update = 30
+    
+    for h in Hospital.objects.all():
+        if (sh:=SalesHistory.objects.filter(hospital__hospital_id=h.hospital_id).order_by('-modified_at').first()) != None:
+            if (elapsed_days:=(datetime.now(tz=timezone.utc) - sh.modified_at).days) > threshold_days_for_update:
+                try:
+                    em = h.manager.email
+                except AttributeError:
+                    continue
+                
+                try:
+                    emails_and_saleshistories_to_update[em] += f'{sh.hospital.hospital_name}, {sh.modified_at}, {elapsed_days}\n'
+                except KeyError:
+                    emails_and_saleshistories_to_update[em] = f'{sh.hospital.hospital_name}, {sh.modified_at}, {elapsed_days}\n'
+
+    for em, h in emails_and_saleshistories_to_update.items():
+	    EmailMessage(
+		    '[purgo CRM web solution] 영업내용 최신화 필요',
+		    h,
+		    'purgocapstone@gmail.com',
+		    to=[em]).send()
+    
 def start_scheduler():
     bs = BackgroundScheduler()
     bs.add_job(update_hospinfo, 'cron', hour='23', minute='59')
+    bs.add_job(send_saleshistories_update_emails, 'cron', hour='0', minute='30')
     bs.start()

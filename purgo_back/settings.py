@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'auths', # Auths app
     'hospital', # Hospital app
     'drf_spectacular', # Swagger (Openapi3.0)
-    'corsheaders', # CORS Headers
+    #'corsheaders', # CORS Headers
+    'gmailapi_backend', # for the e-mail sending functionality
 ]
 
 MIDDLEWARE = [
@@ -88,7 +89,7 @@ WSGI_APPLICATION = 'purgo_back.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-SERVER = 'local'
+SERVER = 'aws'
 if SERVER == 'local':
     # Local Sqlite db
     DATABASES = {
@@ -229,3 +230,8 @@ LOGGING = {
         },
     },
 }
+
+EMAIL_BACKEND = 'gmailapi_backend.mail.GmailBackend'
+GMAIL_API_CLIENT_ID = os.getenv('GMAIL_API_CLIENT_ID') 
+GMAIL_API_CLIENT_SECRET = os.getenv('GMAIL_API_CLIENT_SECRET') 
+GMAIL_API_REFRESH_TOKEN = os.getenv('GMAIL_API_REFRESH_TOKEN')

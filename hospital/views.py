@@ -95,19 +95,39 @@ class SalesHistoryListView(APIView):
         
         list: returns The filtered list of saleshistory on a hospital id
         params: hospital (hospital_id: str)
+
+        parameter page
         '''
         
         hospital = request.query_params.get('hospital', None)
         
         if hospital is not None:
-            history = SalesHistory.objects.filter(hospital=hospital)\
+            queryset = SalesHistory.objects.filter(hospital=hospital)\
                                           .order_by('-modified_at', 'hospital')\
                                           .select_related('hospital__manager', 'hospital__director')
         else:
-            history = SalesHistory.objects.all().order_by('-modified_at', 'hospital')\
+            queryset = SalesHistory.objects.all().order_by('-modified_at', 'hospital')\
                                                 .select_related('hospital__manager', 'hospital__director')
-           
-        serializer = SalesHistorySerializer(history, many=True)
+        
+        page = request.query_params.get('page', 1)
+        ordering = request.query_params.get('ordering', None)
+
+        if ordering is not None:
+            ORDERING_FIELDS = [
+                'modified_at', '-modified_at',
+                'hospital', '-hospital',
+                'id', '-id',
+                'status', '-status',
+                ]
+            if ordering in ORDERING_FIELDS:
+                queryset = queryset.order_by(ordering)
+        
+        if page is not None:
+            from django.core.paginator import Paginator
+            paginator = Paginator(queryset, 20)  # 20 per page
+            queryset = paginator.get_page(page)
+
+        serializer = SalesHistorySerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     
@@ -292,11 +312,29 @@ class SalesHistoryHospitalView(APIView):
         '''
         list: Returns The list of sales history, based on a hospital pk (요양기호)
         '''
-        history = SalesHistory.objects.filter(hospital=hospital)\
+        queryset = SalesHistory.objects.filter(hospital=hospital)\
                                       .order_by('-modified_at', 'hospital')\
                                       .select_related('hospital__manager', 'hospital__director')                
-                                      
-        serializer = SalesHistorySerializer(history, many=True)
+        
+        page = request.query_params.get('page', 1)
+        ordering = request.query_params.get('ordering', None)
+
+        if ordering is not None:
+            ORDERING_FIELDS = [
+                'modified_at', '-modified_at',
+                'hospital', '-hospital',
+                'id', '-id',
+                'status', '-status',
+                ]
+            if ordering in ORDERING_FIELDS:
+                queryset = queryset.order_by(ordering)
+        
+        if page is not None:
+            from django.core.paginator import Paginator
+            paginator = Paginator(queryset, 20)  # 20 per page
+            queryset = paginator.get_page(page)
+
+        serializer = SalesHistorySerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class DashboardView(APIView):

@@ -52,7 +52,7 @@ elif SERVER == 'aws':
 ```
 
 ### Backend API Swagger 
-Run server and go [here](http://localhost:8000/api/schema/swagger-ui/)
+Run server and go [here](http://ec2-18-116-40-72.us-east-2.compute.amazonaws.com:8000/api/schema/swagger-ui/)
 
 or use the url endpoint below
 ```
@@ -64,4 +64,33 @@ Redoc
 ```
 Swagger ui should provide a page like this:
 
-![image](https://github.com/purgo-capstone/back/assets/64758800/42336a0b-5add-4fff-b5ac-87148e0de6bb)
+![purgo_back_test](https://github.com/purgo-capstone/back/assets/64758800/17846878-9ad3-4b48-929c-039cc0e4c98b)
+
+
+### AWS Server Settings
+* First Start
+
+clone backend api
+```
+git clone -b hospital-app-14 --single-branch http://github.com/purgo-capstone/back
+```
+
+setup venv
+```
+python3.8 -m venv venv
+```
+
+install requirements
+```
+pip install -r requirements.txt
+```
+
+migrate database schemas
+```
+python manage.py migrate
+```
+
+run django test server (not for production) use wsgi or gunicorn instead for production
+```
+python manage.py runserver 0:8000 --noreload 
+```

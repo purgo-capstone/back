@@ -6,7 +6,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes 
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import redirect
@@ -35,6 +35,17 @@ class DoctorViewSet(viewsets.ModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
 
+
+@extend_schema_view(
+    list=extend_schema(
+        parameters= [OpenApiParameter('class_code', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Filter hospitals by class_code e.g. 종합병원')],
+        parameters= [OpenApiParameter('manager_id', OpenApiTypes.INT, OpenApiParameter.QUERY, required= False, description='Filter hospitals by manager_id e.g. 1')],
+        parameters= [OpenApiParameter('ordering', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Orders hospital by param | available fields: hospital_name, established_at')],
+        parameters= [OpenApiParameter('search', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Search hospital by param | available fields: hospital_name, director_name')],
+        parameters= [OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, required= False, description= 'Returns hospital based on page, default=1, items_per page=40')],
+    responses={200: HospitalSerializer(many=True)},  
+    )
+)
 class HospitalViewSet(viewsets.ModelViewSet):
     '''
     Hospital ViewSet
@@ -81,7 +92,9 @@ class SalesHistoryListView(APIView):
 
     @extend_schema(
     methods=['get'],
-    parameters= [OpenApiParameter('hospital_id', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False)],
+    parameters= [OpenApiParameter('hospital_id', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Filters result based on hospital id(요양기호) e.g. JDQ4MTAxMiM1MSMkMSMkMCMkODkkMzgxMzUxIzExIyQyIyQzIyQwMCQyNjE0ODEjNjEjJDEjJDgjJDgz ')],
+    parameters= [OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, required= False, description= 'Returns result based on page, default=1, items_per page=20')],
+    parameters= [OpenApiParameter('ordering', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Orders result based on fields | available fields: modified_at, (요양기호)hospital, status, (saleshistory)id')],
     responses={200: SalesHistorySerializer(many=True)},
     # more customizations
     )
@@ -118,8 +131,14 @@ class SalesHistoryListView(APIView):
                 'hospital', '-hospital',
                 'id', '-id',
                 'status', '-status',
+                'hospital_name', '-hospital_name'
                 ]
             if ordering in ORDERING_FIELDS:
+                if ordering == 'hospital_name':
+                    ordering = 'hospital__' + ordering
+                elif ordering == '-hospital_name':
+                    ordering = '-hospital__' + ordering
+                    
                 queryset = queryset.order_by(ordering)
         
         if page is not None:

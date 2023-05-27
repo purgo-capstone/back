@@ -20,13 +20,7 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
 
-@extend_schema(
-    parameters=[
-          UserSerializer,  # serializer fields are converted to parameters
-          OpenApiParameter("email", OpenApiTypes.EMAIL, OpenApiParameter.QUERY),
-          OpenApiParameter("password", OpenApiTypes.PASSWORD, OpenApiParameter.QUERY),
-        ],
-)
+
 class UserViewSet(viewsets.ModelViewSet):
     '''
     User viewset
@@ -72,7 +66,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 @extend_schema(
         request=RegisterSerializer,
-        responses={200: {'description': 'Success', 'example': {'description': 'Success'}}, 400: {'description': 'email validation error', 'example': {'description': 'user already exists'}}}
+        responses={200: {'description': 'Success', 'example': {'description': 'Success'}}, 400: {'description': 'email validation error', 'example': {'description': 'invalid email'}}}
         # more customizations
 )
 class RegisterView(CreateAPIView):

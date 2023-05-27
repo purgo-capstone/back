@@ -11,7 +11,7 @@ from .models import User, Department
 from .serializers import UserSerializer, DepartmentSerializer,\
                          LoginSerializer, RegisterSerializer
 from .permissions import isOwner, isAdmin
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
 
 
@@ -21,6 +21,17 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = DepartmentSerializer
 
 
+
+@extend_schema_view(
+    list=extend_schema(
+        parameters= [
+            OpenApiParameter('ordering', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Orders user by param | available fields: name, email'),
+            OpenApiParameter('search', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Search user by param | available fields: name, email'),
+            OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, required= False, description= 'Return users based on page, default=1, items_per page=40')
+        ],
+    responses={200: UserSerializer(many=True)},  
+    )
+)
 class UserViewSet(viewsets.ModelViewSet):
     '''
     User viewset
@@ -66,7 +77,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
 @extend_schema(
         request=RegisterSerializer,
-        responses={200: {'description': 'Success', 'example': {'description': 'Success'}}, 400: {'description': 'email validation error', 'example': {'description': 'invalid email'}}}
+        responses={201: {'description': 'Success', 'example': {'description': 'Success'}}, 400: {'description': 'email validation error', 'example': {'description': 'invalid email'}}}
         # more customizations
 )
 class RegisterView(CreateAPIView):

@@ -24,9 +24,11 @@ class DepartmentViewSet(viewsets.ModelViewSet):
 
 @extend_schema_view(
     list=extend_schema(
-        parameters= [OpenApiParameter('ordering', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Orders user by param | available fields: name, email')],
-        parameters= [OpenApiParameter('search', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Search user by param | available fields: name, email')],
-        parameters= [OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, required= False, description= 'Return users based on page, default=1, items_per page=40')],
+        parameters= [
+            OpenApiParameter('ordering', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Orders user by param | available fields: name, email'),
+            OpenApiParameter('search', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Search user by param | available fields: name, email'),
+            OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, required= False, description= 'Return users based on page, default=1, items_per page=40')
+        ],
     responses={200: UserSerializer(many=True)},  
     )
 )

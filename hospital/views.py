@@ -1,7 +1,7 @@
 from rest_framework.decorators import api_view
 from rest_framework import viewsets, status
 from rest_framework.views import APIView
-from rest_framework.generics import GenericAPIView
+from rest_framework import generics
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,13 +12,14 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import redirect
 
 from auths.permissions import isAdmin, isManager
-from .models import Hospital, Doctor, Major, School, SalesHistory
+from .models import Hospital, Doctor, Major, School, SalesHistory, Product
 from .serializers import HospitalSerializer, DoctorSerializer, \
                          MajorSerializer, SchoolSerializer, \
                          UserCountSerializer, StatusCountSerializer, \
                          DateCountSerializer, DashboardSerializer,\
                          SalesHistorySerializer, SalesHistoryCreateSerializer, \
-                         SalesHistoryRecentSerializer
+                         SalesHistoryRecentSerializer, ProductSerializer
+                         
 
 from .utils.hosp_fetch import get_hospinfo_openapi                
                         
@@ -295,7 +296,6 @@ class SalesHistoryDetailsView(APIView):
     allowed_methods = ['get','put','patch','delete']
 
 
-
 class SalesHistoryRecentView(APIView):
     '''
     SalesHistoryView List Sales History of current logged in user
@@ -427,23 +427,16 @@ class DashboardView(APIView):
         dashboard = DashboardSerializer(total_cnt)
 
         return Response(dashboard.data, status=status.HTTP_200_OK)
-
-
-           
     
-####
-#### This Function is for Testing Purposes ONLY
-####
-
-@api_view(['POST'])
-def hospital_test_data(request):
-    '''
-    *Test용* 심평원 api를 fetch하여 db에 저장하는 view
-    '''
-    hosp_data = get_hospinfo_openapi()
-    for key in hosp_data.keys():
-        hosp_data[key]['hospital_id'] = key
-        new_hosp = Hospital(**hosp_data[key])
-        new_hosp.save()
+class ProductView(generics.ListCreateAPIView):
+    queryset = 	Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
+    filterset_fields = ['hospital']
+    search_fields = ['name', 'hospital__name']
+    ordering_fields = ['name', 'hospital']
+    ordering = ['name']
     
-    return ('/hospitals')
+class ProductDetailsView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = [ProductSerializer]
+    authentication_classes = [isAdmin]

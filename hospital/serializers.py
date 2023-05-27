@@ -2,11 +2,9 @@ from rest_framework import serializers
 from drf_spectacular.utils import OpenApiExample, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes 
 
-from .models import Hospital, Doctor, School, Major, SalesHistory
+from .models import Hospital, Doctor, School, Major, SalesHistory, Product
 from auths.serializers import CustomSerializer, UserSerializer
 from auths.models import User
-
-
 
 
 class SchoolSerializer(serializers.ModelSerializer):
@@ -47,6 +45,26 @@ class DoctorSerializer(CustomSerializer):
             'name': {'required': True},
         }
         
+class ProductSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    
+    class Meta:
+        model = Product
+        extra_kwargs = {
+            
+            'hospital': 
+            {
+                'required': True
+            },
+            
+            'name': 
+            {
+                'required': True
+            }           
+        } 
+        
+        fields = ['id', 'name', 'is_own_product', 'hospital']
+      
 class HospitalSerializer(CustomSerializer):
     '''
     Hospital (General) Serializer
@@ -57,12 +75,18 @@ class HospitalSerializer(CustomSerializer):
     manager_info = UserSerializer(source='manager', fields=('id', 'name', 'dept_name'), read_only=True)
     director_info = DoctorSerializer(source='director', fields=('id', 'name', 'major_name', 'graduate_school_name'), read_only=True)
 
+    products = serializers.SerializerMethodField()
+    
+    def get_products(self, obj):
+        products = Product.objects.filter(hospital=obj)
+        
+        return ProductSerializer(products, many=True).data
+        
+    
     class Meta:
         model = Hospital
         fields = '__all__'
-
-
-
+        
 @extend_schema_serializer(
     exclude_fields=('hosp_info'), # schema ignore these fields
     examples = [
@@ -215,3 +239,6 @@ class DashboardSerializer(serializers.Serializer):
     user_cnt = UserCountSerializer(many=True)
     status_cnt = StatusCountSerializer(many=True)
     date_cnt = DateCountSerializer(many=True)
+
+
+

@@ -4,7 +4,7 @@ from .views import HospitalViewSet, DoctorViewSet, \
                    MajorViewSet, SchoolViewSet, \
                    DashboardView, \
                    SalesHistoryListView, SalesHistoryDetailsView, \
-                   SalesHistoryRecentView 
+                   SalesHistoryRecentView, ProductView, ProductDetailsView
                    
                    
 router = routers.DefaultRouter()
@@ -19,6 +19,8 @@ urlpatterns =[
     path('saleshistory/', SalesHistoryListView.as_view(), name='sales-history'),
     path('saleshistory/<int:pk>/', SalesHistoryDetailsView.as_view(), name='sales-history-detail'),
     path('saleshistory/myhistory/', SalesHistoryRecentView.as_view(), name='sales-history-self'),
-    path('dashboard/', DashboardView.as_view(), name='dash-board')
+    path('dashboard/', DashboardView.as_view(), name='dash-board'),
+    path('products/', ProductView.as_view(), name='product'),
+    path('products/<int:pk>/', ProductDetailsView.as_view(), name='product-details')
 ]
 

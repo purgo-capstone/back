@@ -111,7 +111,13 @@ class SalesHistory(models.Model):
     class Meta:
         verbose_name = 'History'
 
-
+class Product(models.Model):
+    '''
+    Product Model (제품)
+    '''
+    name = models.CharField(max_length=255, unique=True)
+    is_own_product = models.BooleanField(default=False)
+    hospital = models.ManyToManyField(Hospital, related_name='product')
 
 
 

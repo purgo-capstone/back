@@ -47,14 +47,13 @@ class DoctorSerializer(CustomSerializer):
         
 class ProductSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    
     class Meta:
         model = Product
         extra_kwargs = {
             
             'hospital': 
             {
-                'required': True
+                'required': True,
             },
             
             'name': 

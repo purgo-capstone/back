@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes 
 from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 
 from auths.permissions import isAdmin, isManager
 from .models import Hospital, Doctor, Major, School, SalesHistory, Product
@@ -438,5 +438,9 @@ class ProductView(generics.ListCreateAPIView):
     ordering = ['name']
     
 class ProductDetailsView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = [ProductSerializer]
-    authentication_classes = [isAdmin]
+    
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    permission_classes = [isAdmin]
+    
+        

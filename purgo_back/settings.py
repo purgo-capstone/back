@@ -88,7 +88,7 @@ WSGI_APPLICATION = 'purgo_back.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
-SERVER = 'local'
+SERVER = os.getenv("SERVER")
 if SERVER == 'local':
     # Local Sqlite db
     DATABASES = {
@@ -181,6 +181,9 @@ REST_FRAMEWORK = {
 # CORS Settings
 CORS_ORIGIN_WHITELIST = ['http://127.0.0.1:3000',
                          'http://localhost:3000']
+
+CSRF_TRUSTED_ORIGINS = ['http://localhost',
+                        'http://127.0.0.1']
 
 CORS_ALLOW_CREDENTIALS = True 
 

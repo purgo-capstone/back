@@ -39,7 +39,14 @@ class UserSerializer(CustomSerializer):
     '''
     password = serializers.CharField(write_only=True) 
 
+    is_active = serializers.BooleanField(read_only=True)
+    
+    is_admin = serializers.BooleanField(read_only=True)
+    
     dept_name = DepartmentSerializer(source="dept",read_only=True)
+    
+
+    
     class Meta:
         model = User
         fields = ['id', 'email', 'name', 'password', 'dept', 'is_admin', 'dept_name', 'is_active']

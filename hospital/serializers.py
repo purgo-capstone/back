@@ -150,51 +150,7 @@ class SalesHistoryCreateSerializer(serializers.ModelSerializer):
         }
 
 
-@extend_schema_serializer(
-    exclude_fields=('hosp_info'), # schema ignore these fields
-    examples = [
-         OpenApiExample(
-            '등록화면 HISTORY',
-            summary='Sales History List (user)',
-            description='Sales History List by logged in user',
-            value= {
-                    '1': {"modified_at": "2019-08-24 14:14",
-                    "get_status_display": "OPP",
-                    "hospital": "요양기호(pk)",
-                    "content": "Some Text Content",
-                    "hosp_info": {
-                        "director_info": {
-                        "name": "string",
-                        "graduate_year": "2019-08-24",
-                        "graduate_school": 0,
-                        "major": 0
-                        },
-                        "hospital_name": "string",
-                        "manager": 0,
-                        "director": 0,
-                    },
-                    },'2': {
-                    "modified_at": "2019-08-24 14:15",
-                    "get_status_display": "ACT",
-                    "hospital": "요양기호(pk)",
-                    "content": "Some Text Content",
-                    "hosp_info": {
-                        "director_info": {
-                        "name": "string",
-                        "graduate_year": "2019-08-24",
-                        "graduate_school": 0,
-                        "major": 0
-                        },
-                        "hospital_name": "string",
-                        "manager": 0,
-                        "director": 0,
-                    }
 
-            },
-            }
-        )
-    ]
-)
 class SalesHistoryRecentSerializer(serializers.ModelSerializer):
     '''
     Serializer for Sales History Recent View 

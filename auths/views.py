@@ -16,7 +16,15 @@ from drf_spectacular.types import OpenApiTypes
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):
-    permission_classes = [isAdmin]
+    def get_permissions(self):
+        actions = ['create', 'update', 'partial_update', 'destroy']
+
+        if self.action in actions:
+            permission_classes = [IsAuthenticated & isAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
     queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
 

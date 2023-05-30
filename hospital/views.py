@@ -32,7 +32,15 @@ class DoctorViewSet(viewsets.ModelViewSet):
     permission: Admin
     
     '''
-    permission_classes = [isAdmin]
+    def get_permissions(self):
+        actions = ['update', 'partial_update', 'destroy']
+
+        if self.action in actions:
+            permission_classes = [IsAuthenticated & isAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+    
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
 
@@ -67,7 +75,7 @@ class HospitalViewSet(viewsets.ModelViewSet):
     ordering = ['hospital_name']
     
     def get_permissions(self):
-        actions = ['update', 'partial_update', 'destroy']
+        actions = ['create', 'update', 'partial_update', 'destroy']
 
         if self.action in actions:
             permission_classes = [IsAuthenticated & (isManager|isAdmin)]
@@ -77,14 +85,31 @@ class HospitalViewSet(viewsets.ModelViewSet):
         return [permission() for permission in permission_classes]
         
 class MajorViewSet(viewsets.ModelViewSet):
-    permission_classes = [isAdmin]
     queryset = Major.objects.all()
     serializer_class = MajorSerializer
+    def get_permissions(self):
+        actions = ['create', 'update', 'partial_update', 'destroy']
+
+        if self.action in actions:
+            permission_classes = [IsAuthenticated & isAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+
+        return [permission() for permission in permission_classes]
 
 class SchoolViewSet(viewsets.ModelViewSet):
-    permission_classes = [isAdmin]
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
+    
+    def get_permissions(self):
+        actions = ['create', 'update', 'partial_update', 'destroy']
+
+        if self.action in actions:
+            permission_classes = [IsAuthenticated & isAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+
+        return [permission() for permission in permission_classes]
 
 class SalesHistoryListView(APIView):
     '''
@@ -305,6 +330,7 @@ class SalesHistoryRecentView(APIView):
     @extend_schema(
         methods=['GET'],
         parameters= [
+            OpenApiParameter('hospital_id', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Filters result based on hospital id(요양기호) e.g. JDQ4MTAxMiM1MSMkMSMkMCMkODkkMzgxMzUxIzExIyQyIyQzIyQwMCQyNjE0ODEjNjEjJDEjJDgjJDgz '),
             OpenApiParameter('page', OpenApiTypes.INT, OpenApiParameter.QUERY, required= False, description= 'Returns result based on page, default=1, items_per page=20'),
             OpenApiParameter('ordering', OpenApiTypes.STR, OpenApiParameter.QUERY, required= False, description='Orders result based on fields | available fields: modified_at, (요양기호)hospital, status, (saleshistory)id'),
         ],
@@ -315,10 +341,19 @@ class SalesHistoryRecentView(APIView):
         '''
         get: returns list of saleshistories created by the current user logged in
         '''
-    
-        queryset = SalesHistory.objects.filter(hospital__manager=request.user) \
+        
+        hospital = request.query_params.get('hospital_id', None)
+
+        if hospital is not None:
+            queryset = SalesHistory.objects.filter(hospital__manager=request.user, hospital=hospital) \
+                                            .order_by('-modified_at') \
+                                            .select_related('hospital__manager')
+        else:
+            queryset = SalesHistory.objects.filter(hospital__manager=request.user) \
                                         .order_by('-modified_at') \
                                         .select_related('hospital__manager')
+
+
 
         page = request.query_params.get('page', 1)
         ordering = request.query_params.get('ordering', None)
@@ -341,49 +376,6 @@ class SalesHistoryRecentView(APIView):
         serializer = SalesHistoryRecentSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    
-class SalesHistoryHospitalView(APIView):
-    '''
-    SalesHistoryView based on the hospital(pk)
-    '''
-    allowed_methods = ['get']
-    
-    @extend_schema(
-    methods=['get'],
-    parameters=[
-        OpenApiParameter("pk (hospital)", OpenApiParameter.PATH, required=True), 
-    ],
-    responses={200: SalesHistorySerializer(many=True)},
-    )
-    def get(self, request, hospital=None):
-        '''
-        list: Returns The list of sales history, based on a hospital pk (요양기호)
-        '''
-        queryset = SalesHistory.objects.filter(hospital=hospital)\
-                                      .order_by('-modified_at', 'hospital')\
-                                      .select_related('hospital__manager', 'hospital__director')                
-        
-        page = request.query_params.get('page', 1)
-        ordering = request.query_params.get('ordering', None)
-
-        if ordering is not None:
-            ORDERING_FIELDS = [
-                'modified_at', '-modified_at',
-                'hospital', '-hospital',
-                'id', '-id',
-                'status', '-status',
-                ]
-            if ordering in ORDERING_FIELDS:
-                queryset = queryset.order_by(ordering)
-        
-        if page is not None:
-            from django.core.paginator import Paginator
-            paginator = Paginator(queryset, 20)  # 20 per page
-            queryset = paginator.get_page(page)
-
-        serializer = SalesHistorySerializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 class DashboardView(APIView):
     '''
@@ -428,7 +420,10 @@ class DashboardView(APIView):
 
         return Response(dashboard.data, status=status.HTTP_200_OK)
     
-class ProductView(generics.ListCreateAPIView):
+class ProductView(generics.ListAPIView):
+    '''
+    제품정보 (Products View)
+    '''
     queryset = 	Product.objects.all()
     serializer_class = ProductSerializer
     filter_backends = [SearchFilter, OrderingFilter, DjangoFilterBackend]
@@ -436,9 +431,16 @@ class ProductView(generics.ListCreateAPIView):
     search_fields = ['name', 'hospital__name']
     ordering_fields = ['name', 'hospital']
     ordering = ['name']
+
+class ProductCreateView(generics.CreateAPIView):
+    queryset = 	Product.objects.all()
+    serializer_class = ProductSerializer
+    permission_classes = [isAdmin]
     
 class ProductDetailsView(generics.RetrieveUpdateDestroyAPIView):
-    
+    '''
+    제품 단일정보 / 조회, 수정, 삭제
+    '''
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [isAdmin]
